@@ -13,7 +13,7 @@ using BoolVector = std::vector<uint8_t>;
 using BoolMatrix = std::vector<BoolVector>;
 
 const int Undefined = std::numeric_limits<int>::max();
-const int GuessStep = 5;
+const int GuessStep = 3;
 const int GapTolerance = 4;
 
 template <typename T>
@@ -90,27 +90,42 @@ void assertSingleTripleInvariant(const IntVector& palindromicLengths, int rightI
     }
 }
 
-void updateSinglePalindromicLength(
-        int value, int index, IntVector& targetPalindromicLengths, bool withAssertions = true) {
+void updateSinglePalindromicLength(int value, int addition, int index, IntVector& targetPalindromicLengths) {
     if (value != Undefined) {
-        minAssign(targetPalindromicLengths[index], value + 1);
+        minAssign(targetPalindromicLengths[index], value + addition);
     }
-    if (withAssertions) {
-        for (int shift = 0; shift < 3 && index + shift < getSize(targetPalindromicLengths); ++shift) {
-            assertSingleTripleInvariant(targetPalindromicLengths, index + shift);
-        }
+}
+
+void normalizeSinglePalindromicLengthTriple(IntVector& palindromicLengths, int rightIndex) {
+    if (rightIndex - 1 < 0) {
+        return;
+    }
+    int value = palindromicLengths[rightIndex - 1];
+    if (rightIndex - 2 >= 0) {
+        value = std::max(value, palindromicLengths[rightIndex - 2]);
+    }
+    updateSinglePalindromicLength(value, 2, rightIndex, palindromicLengths);
+    // A hack to deal with eventually undefined lengths
+    if (palindromicLengths[rightIndex] > rightIndex) {
+        palindromicLengths[rightIndex] = Undefined;
     }
 }
 
 void updatePalindromicLengthsWithSinglePalindrome(
         const std::string& extendedText, int leftBorder, int rightBorder,
         const IntVector& sourcePalindromicLengths, IntVector& targetPalindromicLengths) {
+    const int initialRightBorder = rightBorder;
     while (leftBorder >= 0 && rightBorder < getSize(extendedText) &&
            extendedText[leftBorder] == extendedText[rightBorder]) {
-        updateSinglePalindromicLength(sourcePalindromicLengths[leftBorder], rightBorder + 1,
+        updateSinglePalindromicLength(sourcePalindromicLengths[leftBorder], 1, rightBorder + 1,
                                       targetPalindromicLengths);
         --leftBorder;
         ++rightBorder;
+    }
+
+    for (int index = initialRightBorder + 1; index <= getSize(extendedText); ++index) {
+        normalizeSinglePalindromicLengthTriple(targetPalindromicLengths, index);
+        assertSingleTripleInvariant(targetPalindromicLengths, index);
     }
 }
 
@@ -215,10 +230,10 @@ std::pair<IntVector, IntVector> getOddAndEvenPalindromicLengthsNaively(const std
             if (!isSubstrPalindrome[length][palindromeLength]) {
                 continue;
             }
-            updateSinglePalindromicLength(oddPalindromicLengths[length], length + palindromeLength,
-                                          evenPalindromicLengths, false);
-            updateSinglePalindromicLength(evenPalindromicLengths[length], length + palindromeLength,
-                                          oddPalindromicLengths, false);
+            updateSinglePalindromicLength(oddPalindromicLengths[length], 1, length + palindromeLength,
+                                          evenPalindromicLengths);
+            updateSinglePalindromicLength(evenPalindromicLengths[length], 1, length + palindromeLength,
+                                          oddPalindromicLengths);
         }
     }
 
