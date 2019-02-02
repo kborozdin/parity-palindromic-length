@@ -13,24 +13,34 @@ using BoolVector = std::vector<uint8_t>;
 using BoolMatrix = std::vector<BoolVector>;
 
 const int Undefined = std::numeric_limits<int>::max();
-const int GuessStep = 3;
-const int GapTolerance = 4;
+const int GuessStep = 5;
+const int GapTolerance = 2;
 
 template <typename T>
 int getSize(const T& container) {
     return static_cast<int>(container.size());
 }
 
-template <typename T>
-std::string containerToString(const T& container) {
+std::string containerToString(const IntVector& container, int elementWidth = 2) {
+    auto prependSpaces = [elementWidth] (const std::string& string) {
+        return std::string(std::max(0, elementWidth - getSize(string)), ' ') + string;
+    };
+
+    auto elementToString = [prependSpaces] (int element) {
+        if (element == Undefined) {
+            return prependSpaces("-");
+        }
+        return prependSpaces(std::to_string(element));
+    };
+
     std::string result = "[";
     bool first = true;
-    for (const auto& element : container) {
+    for (int element : container) {
         if (!first) {
             result += ", ";
         }
         first = false;
-        result += std::to_string(element);
+        result += elementToString(element);
     }
     return result + "]";
 }
@@ -97,18 +107,11 @@ void updateSinglePalindromicLength(int value, int addition, int index, IntVector
 }
 
 void normalizeSinglePalindromicLengthTriple(IntVector& palindromicLengths, int rightIndex) {
-    if (rightIndex - 1 < 0) {
+    if (rightIndex - 2 < 0) {
         return;
     }
-    int value = palindromicLengths[rightIndex - 1];
-    if (rightIndex - 2 >= 0) {
-        value = std::max(value, palindromicLengths[rightIndex - 2]);
-    }
+    int value = palindromicLengths[rightIndex - 2];
     updateSinglePalindromicLength(value, 2, rightIndex, palindromicLengths);
-    // A hack to deal with eventually undefined lengths
-    if (palindromicLengths[rightIndex] > rightIndex) {
-        palindromicLengths[rightIndex] = Undefined;
-    }
 }
 
 void updatePalindromicLengthsWithSinglePalindrome(
@@ -210,6 +213,8 @@ std::pair<IntVector, IntVector> getOddAndEvenPalindromicLengths(const std::strin
 IntVector getPalindromicLengths(const std::string& text) {
     IntVector oddPalindromicLengths, evenPalindromicLengths;
     std::tie(oddPalindromicLengths, evenPalindromicLengths) = getOddAndEvenPalindromicLengths(text);
+    std::cerr << "odd:  " << containerToString(oddPalindromicLengths) << std::endl;
+    std::cerr << "even: " << containerToString(evenPalindromicLengths) << std::endl;
     IntVector palindromicLengths(text.size() + 1);
     for (int index = 0; index < getSize(palindromicLengths); ++index) {
         palindromicLengths[index] = std::min(oddPalindromicLengths[index],
